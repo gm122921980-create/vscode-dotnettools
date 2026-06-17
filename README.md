@@ -1,3 +1,54 @@
+
+#!/bin/bash
+# =====================================================================
+# GUBON OS V5 - Cloudflare Nginx 核心自動化初始化種子程序
+# =====================================================================
+
+set -e
+
+echo "[+] 開始初始化 GUBON OS V5 系統環境..."
+
+# 1. 建立核心配置與日誌目錄
+echo "[+] 正在建立系統目錄..."
+mkdir -p /etc/nginx/cloudflare
+mkdir -p /var/log/gubonos
+
+# 2. 下載最新的 Cloudflare IP 列表 (IPv4 & IPv6)
+echo "[+] 正在同步 Cloudflare 邊緣網路 IP 節點..."
+CF_IPV4=$(curl -s https://www.cloudflare.com/ips-v4)
+CF_IPV6=$(curl -s https://www.cloudflare.com/ips-v6)
+
+CF_CONFIG="/etc/nginx/cloudflare/cloudflare_ips.conf"
+
+# 3. 實打實寫入 Nginx set_real_ip_from 配置
+echo "[+] 正在生成 Nginx 反向代理白名單..."
+echo "# GUBON OS V5 自動生成 - 請勿手動修改" > $CF_CONFIG
+
+for ip in $CF_IPV4; do
+    echo "set_real_ip_from $ip;" >> $CF_CONFIG
+done
+
+for ip in $CF_IPV6; do
+    echo "set_real_ip_from $ip;" >> $CF_CONFIG
+done
+
+# 設定真實 IP 來源標頭
+echo "real_ip_header X-Forwarded-For;" >> $CF_CONFIG
+echo "real_ip_recursive on;" >> $CF_CONFIG
+
+# 4. 驗證 Nginx 配置語法
+echo "[+] 正在驗證 Nginx 語法結構..."
+if nginx -t > /dev/null 2>&1; then
+    echo "[+] Nginx 語法正確，正在重新載入服務..."
+    systemctl reload nginx
+    echo "[==================================================]"
+    echo "[核心訊息] GUBON OS V5 種子程序初始化成功。閉環就緒。"
+    echo "[==================================================]"
+else
+    echo "[-] 錯誤：Nginx 配置驗證失敗，請檢查主設定檔是否引入此 conf。"
+    exit 1
+fi
+
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
