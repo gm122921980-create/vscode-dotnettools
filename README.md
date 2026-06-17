@@ -964,3 +964,491 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+*terminal.txt*   Nvim
+
+
+                            NVIM REFERENCE MANUAL
+
+
+Terminal emulator                                     *terminal* *terminal-emulator*
+
+Nvim embeds a VT220/xterm terminal emulator based on libvterm. The terminal is
+presented as a special 'buftype', asynchronously updated as data is received
+from the connected program.
+
+Terminal buffers behave like normal buffers, except:
+- With 'modifiable', lines can be edited but not deleted.
+- 'scrollback' controls how many lines are kept.
+- Output is followed ("tailed") if cursor is on the last line.
+- 'modified' is the default. You can set 'nomodified' to avoid a warning when
+  closing the terminal buffer.
+- 'bufhidden' defaults to "hide".
+
+                                      Type |gO| to see the table of contents.
+
+==============================================================================
+Start                                                           *terminal-start*
+
+There are several ways to create a terminal buffer:
+
+- Run the |:terminal| command.
+- Call |nvim_open_term()| or `jobstart(…, {'term': v:true})`.
+- Edit a "term://" buffer. Examples: >vim
+    :edit term://bash
+    :vsplit term://top
+
+<    Note: To open a "term://" buffer from an autocmd, the |autocmd-nested|
+    modifier is required. >vim
+        autocmd VimEnter * ++nested split term://sh
+<    (This is only mentioned for reference; use |:terminal| instead.)
+
+When the terminal starts, the buffer contents are updated and the buffer is
+named in the form of `term://{cwd}//{pid}:{cmd}`. This naming scheme is used
+by |:mksession| to restore a terminal buffer (by restarting the {cmd}).
+
+The terminal environment is initialized as in |jobstart-env|.
+
+==============================================================================
+Input                                                           *terminal-input*
+
+To send input, enter |Terminal-mode| with |i|, |I|, |a|, |A| or
+|:startinsert|. In this mode all keys except <C-\> are sent to the underlying
+program. If <C-\> is pressed, the next key is sent unless it is <C-N> or <C-O>.
+Use <C-\><C-N> to return to normal mode. |CTRL-\_CTRL-N|
+Use <C-\><C-O> to execute one normal mode command and then return to terminal
+mode. *t_CTRL-\_CTRL-O*
+
+Terminal-mode forces these local options:
+
+- 'cursorlineopt' = number
+- 'nocursorcolumn'
+- 'scrolloff' = 0
+- 'sidescrolloff' = 0
+
+Terminal-mode has its own |:tnoremap| namespace for mappings, this can be used
+to automate any terminal interaction.
+
+To map <Esc> to exit terminal-mode: >vim
+    :tnoremap <Esc> <C-\><C-n>
+
+To simulate |i_CTRL-R| in terminal-mode: >vim
+    :tnoremap <expr> <C-R> '<C-\><C-N>"'.nr2char(getchar()).'pi'
+
+To use `ALT+{h,j,k,l}` to navigate windows from any mode: >vim
+    :tnoremap <A-h> <C-\><C-N><C-w>h
+    :tnoremap <A-j> <C-\><C-N><C-w>j
+    :tnoremap <A-k> <C-\><C-N><C-w>k
+    :tnoremap <A-l> <C-\><C-N><C-w>l
+    :inoremap <A-h> <C-\><C-N><C-w>h
+    :inoremap <A-j> <C-\><C-N><C-w>j
+    :inoremap <A-k> <C-\><C-N><C-w>k
+    :inoremap <A-l> <C-\><C-N><C-w>l
+    :nnoremap <A-h> <C-w>h
+    :nnoremap <A-j> <C-w>j
+    :nnoremap <A-k> <C-w>k
+    :nnoremap <A-l> <C-w>l
+
+You can also create menus similar to terminal mode mappings, but you have to
+use |:tlmenu| instead of |:tmenu|.
+
+Mouse input has the following behavior:
+
+- If the program has enabled mouse events, the corresponding events will be
+  forwarded to the program.
+- If mouse events are disabled (the default), terminal focus will be lost and
+  the event will be processed as in a normal buffer.
+- If another window is clicked, terminal focus will be lost and nvim will jump
+  to the clicked window
+- If the mouse wheel is used while the mouse is positioned in another window,
+  the terminal won't lose focus and the hovered window will be scrolled.
+
+==============================================================================
+Configuration                                                  *terminal-config*
+
+- Options: 'modified', 'scrollback'
+- Events: |TermOpen|, |TermEnter|, |TermLeave|, |TermClose|
+- Event groups: "nvim.terminal" |default-autocmds|
+- Highlight groups: |hl-TermCursor|
+
+Terminal sets local defaults for some options, which may differ from your
+global configuration.
+
+- 'list' is disabled
+- 'wrap' is disabled
+- 'number' is disabled
+- 'relativenumber' is disabled
+- 'signcolumn' is set to "no"
+- 'foldcolumn' is set to "0"
+
+You can change the defaults with a TermOpen autocommand: >vim
+    :autocmd TermOpen * setlocal list
+
+By default, "[Process exited]" is displayed when the terminal process ends. To
+disable that, you can delete the "nvim.terminal" TermClose handler (this also
+deletes other |default-autocmds| TermClose functionality): >vim
+    :autocmd! nvim.terminal TermClose
+<
+
+TERMINAL COLORS ~
+
+The `{g,b}:terminal_color_x` variables control the terminal color palette,
+where `x` is the color index between 0 and 15 inclusive.  The variables are
+read during |TermOpen|. The value must be a color name or hexadecimal string.
+Example: >vim
+    let g:terminal_color_4 = '#ff0000'
+    let g:terminal_color_5 = 'green'
+Only works for RGB UIs (see 'termguicolors'); for 256-color terminals the
+color index is just forwarded.
+
+Editor highlighting (|syntax-highlighting|, |highlight-groups|, etc.) has
+higher precedence: it is applied after terminal colors are resolved.
+
+------------------------------------------------------------------------------
+EVENTS                                                        *terminal-events*
+
+Applications running in a :terminal buffer can send requests, which Nvim
+exposes via the |TermRequest| event.
+
+OSC 7: change working directory                                *terminal-osc7*
+
+Shells can emit the "OSC 7" sequence to announce when the current directory
+(CWD) changed.
+
+You can configure your shell init (e.g. ~/.bashrc) to emit OSC 7, or your
+terminal may attempt to do it for you.
+
+To configure bash to emit OSC 7: >bash
+  function print_osc7() {
+    printf '\033]7;file://%s\033\\' "$PWD"
+  }
+  PROMPT_COMMAND='print_osc7'
+
+Having ensured that your shell emits OSC 7, you can now handle it in Nvim. The
+following code will run :lcd whenever your shell CWD changes in a :terminal
+buffer: >lua
+
+  vim.api.nvim_create_autocmd({ 'TermRequest' }, {
+    desc = 'Handles OSC 7 dir change requests',
+    callback = function(ev)
+      local val, n = string.gsub(ev.data.sequence, '\027]7;file://[^/]*', '')
+      if n > 0 then
+        -- OSC 7: dir-change
+        local dir = val
+        if vim.fn.isdirectory(dir) == 0 then
+          vim.notify('invalid dir: '..dir)
+          return
+        end
+        vim.b[ev.buf].osc7_dir = dir
+        if vim.api.nvim_get_current_buf() == ev.buf then
+          vim.cmd.lcd(dir)
+        end
+      end
+    end
+  })
+
+To try it out, select the above code and source it with `:'<,'>lua`, then run
+this command in a :terminal buffer: >
+
+    printf "\033]7;file://./foo/bar\033\\"
+
+OSC 52: write to system clipboard                             *terminal-osc52*
+
+Applications in the :terminal buffer can write to the system clipboard by
+emitting an OSC 52 sequence. Example: >
+
+    printf '\033]52;;%s\033\\' "$(echo -n 'Hello world' | base64)"
+
+Nvim uses the configured |clipboard| provider to write to the system
+clipboard. Reading from the system clipboard with OSC 52 is not supported, as
+this would allow any arbitrary program in the :terminal to read the user's
+clipboard.
+
+OSC 52 sequences sent from the :terminal buffer do not emit a |TermRequest|
+event. The event is handled directly by Nvim and is not forwarded to plugins.
+
+OSC 133: shell integration                    *terminal-osc133* *shell-prompt*
+
+Shells can emit semantic escape sequences (OSC 133) to mark where each prompt
+starts and ends. The start of a prompt is marked by sequence `OSC 133 ; A ST`,
+and the end by `OSC 133 ; B ST`.
+
+You can configure your shell init (e.g. ~/.bashrc) to emit OSC 133 sequences,
+or your terminal may attempt to do it for you (assuming your shell config
+doesn't interfere).
+
+- fish: https://fishshell.com/docs/current/relnotes.html#improved-terminal-support
+- kitty: https://sw.kovidgoyal.net/kitty/shell-integration/
+- powershell: https://learn.microsoft.com/en-us/windows/terminal/tutorials/shell-integration#powershell-pwshexe
+- vscode: https://code.visualstudio.com/docs/terminal/shell-integration
+
+To configure bash to mark the start of each prompt, set $PROMPT_COMMAND: >bash
+
+    # Prompt start:
+    PROMPT_COMMAND='printf "\033]133;A\007"'
+<
+                                                *terminal_]]* *terminal_[[*
+The |]]| and |[[| motions jump to the next/previous prompts, if your shell
+emits OSC 133 as described above.
+
+                                                *shell-prompt-signs*
+To annotate each terminal prompt with a sign, call |nvim_buf_set_extmark()|
+from a |TermRequest| handler: >lua
+
+    vim.api.nvim_create_autocmd('TermOpen', {
+      command = 'setlocal signcolumn=auto',
+    })
+    local ns = vim.api.nvim_create_namespace('my.terminal.prompt')
+    vim.api.nvim_create_autocmd('TermRequest', {
+      callback = function(ev)
+        if string.match(ev.data.sequence, '^\027]133;A') then
+          local lnum = ev.data.cursor[1]
+          vim.api.nvim_buf_set_extmark(ev.buf, ns, lnum - 1, 0, {
+            sign_text = '▶',
+            sign_hl_group = 'SpecialChar',
+          })
+        end
+      end,
+    })
+<
+==============================================================================
+Status Variables                                             *terminal-status*
+
+Terminal buffers maintain some buffer-local variables and options. The values
+are initialized before TermOpen, so you can use them in a local 'statusline'.
+Example: >vim
+    :autocmd TermOpen * setlocal statusline=%{b:term_title}
+
+- *b:term_title*  Terminal title (user-writable), typically displayed in the
+  window title or tab title of a graphical terminal emulator. Terminal
+  programs can set this by emitting an escape sequence.
+- 'channel'  Terminal PTY |job-id|.  Can be used with |chansend()| to send
+  input to the terminal.
+- The |TermClose| event gives the terminal job exit code in the |v:event|
+  "status" field. For example, this autocommand outputs the terminal's exit
+  code to |:messages|: >vim
+    autocmd TermClose * echom 'Terminal exited with status '..v:event.status
+
+Use |jobwait()| to check if the terminal job has finished: >vim
+    let running = jobwait([&channel], 0)[0] == -1
+<
+==============================================================================
+:Termdebug plugin                         *terminal-debug* *terminal-debugger*
+                                               *package-termdebug* *termdebug*
+
+The Terminal debugging plugin can be used to debug a program with gdb and view
+the source code in a Vim window.  Since this is completely contained inside
+Vim this also works remotely over an ssh connection.
+
+Starting ~
+                                                        *termdebug-starting*
+Load the plugin with this command: >vim
+    packadd termdebug
+When loading the plugin from the |vimrc| file, add the "!" attribute: >vim
+    packadd! termdebug
+<                                                       *:Termdebug*
+To start debugging use `:Termdebug` or `:TermdebugCommand` followed by the
+command name, for example: >vim
+    :Termdebug vim
+
+This opens two windows:
+
+- gdb window: A terminal window in which "gdb vim" is executed.  Here you can
+  directly interact with gdb.
+- program window: A terminal window for the executed program.  When "run" is
+  used in gdb the program I/O will happen in this window, so that it does not
+  interfere with controlling gdb.
+
+The current window is used to show the source code.  When gdb pauses the
+source file location will be displayed, if possible.  A sign is used to
+highlight the current position, using highlight group debugPC.
+
+If the buffer in the current window is modified, another window will be opened
+to display the current gdb position.
+
+Focus the terminal of the executed program to interact with it.  This works
+the same as any command running in a terminal window.
+
+When the debugger ends, typically by typing "quit" in the gdb window, the two
+opened windows are closed.
+
+Only one debugger can be active at a time.
+                                                        *:TermdebugCommand*
+If you want to give specific commands to the command being debugged, you can
+use the `:TermdebugCommand` command followed by the command name and
+additional parameters. >vim
+    :TermdebugCommand vim --clean -c ':set nu'
+
+Both the `:Termdebug` and `:TermdebugCommand` support an optional "!" bang
+argument to start the command right away, without pausing at the gdb window
+(and cursor will be in the debugged window).  For example: >vim
+    :TermdebugCommand! vim --clean
+
+To attach gdb to an already running executable or use a core file, pass extra
+arguments.  E.g.: >vim
+    :Termdebug vim core
+    :Termdebug vim 98343
+
+If no argument is given, you'll end up in a gdb window, in which you need to
+specify which command to run using e.g. the gdb `file` command.
+
+
+Example session ~
+                                                        *termdebug-example*
+Start in the Vim "src" directory and build Vim: >
+    % make
+Start Vim: >
+    % ./vim
+Load the termdebug plugin and start debugging Vim: >vim
+    :packadd termdebug
+    :Termdebug vim
+You should now have three windows:
+- source:  where you started
+- gdb:     you can type gdb commands here
+- program: the executed program will use this window
+
+Put focus on the gdb window and type: >
+    break ex_help
+    run
+Vim will start running in the program window.  Put focus there and type: >vim
+    :help gui
+Gdb will run into the ex_help breakpoint.  The source window now shows the
+ex_cmds.c file.  A red "1 " marker will appear in the signcolumn where the
+breakpoint was set.  The line where the debugger stopped is highlighted.  You
+can now step through the program.  You will see the highlighting move as the
+debugger executes a line of source code.
+
+Run |:Over| a few times until the for loop is highlighted.  Put the cursor on
+the end of "eap->arg", then call ":Eval".  You will see this displayed: >
+    "eap->arg": 0x555555e68855 "gui"
+This way you can inspect the value of local variables.  You can also focus the
+gdb window and use a "print" command, e.g.: >
+    print *eap
+If mouse pointer movements are working, Vim will also show a balloon when the
+mouse rests on text that can be evaluated by gdb.
+You can also use the "K" mapping that will either use Nvim floating windows
+to show the results.
+
+Now go back to the source window and put the cursor on the first line after
+the for loop, then type: >
+    :Break
+You will see a "1" marker appear, this indicates the new breakpoint.  Now
+run ":Cont" command and the code until the breakpoint will be executed.
+
+You can type more advanced commands in the gdb window.  For example, type: >
+    watch curbuf
+Now run ":Cont" (or type "cont" in the gdb window). Execution
+will now continue until the value of "curbuf" changes, which is in do_ecmd().
+To remove this watchpoint again type in the gdb window: >
+    delete 3
+
+You can see the stack by typing in the gdb window: >
+    where
+Move through the stack frames, e.g. with: >
+    frame 3
+The source window will show the code, at the point where the call was made to
+a deeper level.
+
+
+Stepping through code ~
+                                                        *termdebug-stepping*
+Put focus on the gdb window to type commands there.  Some common ones are:
+- CTRL-C:   interrupt the program
+- next:     execute the current line and stop at the next line
+- step:     execute the current line and stop at the next statement,
+            entering functions
+- until:    execute until past the current cursor line or past a specified
+            position or the current stack frame returns
+- finish:   execute until leaving the current function
+- where:    show the stack
+- frame N:  go to the Nth stack frame
+- continue: continue execution
+
+                                                *:Run* *:Arguments*
+In the window showing the source code these commands can be used to control
+gdb:
+- `:Run` [args]        run the program with [args] or the previous arguments
+- `:Arguments` {args}  set arguments for the next `:Run`
+
+- *:Break* set a breakpoint at the cursor position
+- :Break [{position}] [thread {nr}] [if {expr}]
+  set a breakpoint at the specified position if {position} is omitted, use the
+  current file and line thread {nr} limits the breakpoint to one thread if
+  {expr} sets a conditional breakpoint.
+  Examples: >
+      :Break if argc == 1
+      :Break 42 thread 3 if x > 10
+      :Break main
+<
+- *:Tbreak* set a temporary breakpoint at the cursor position
+- :Tbreak [{position}] [thread {nr}] [if {expr}]
+  like `:Break`, but the breakpoint is deleted after it is hit once.
+  Examples: >
+      :Tbreak if argc == 1
+      :Tbreak 42 thread 3 if x > 10
+      :Tbreak main
+<
+- *:Clear* delete the breakpoint at the cursor position
+- *:ToggleBreak* set a breakpoint at the cursor position or delete all
+               breakpoints at the cursor positoin
+
+- *:Step*       execute the gdb "step" command
+- *:Over*       execute the gdb "next" command (`:Next` is a Vim command)
+- *:Until*      execute the gdb "until" command
+- *:Finish*     execute the gdb "finish" command
+- *:Continue*   execute the gdb "continue" command
+- *:RunOrContinue* execute the gdb "continue" command if program is running,
+                 otherwise run the program
+- *:Stop*       interrupt the program
+
+If gdb stops at a source line and there is no window currently showing the
+source code, a new window will be created for the source code.  This also
+happens if the buffer in the source code window has been modified and can't be
+abandoned.
+
+Gdb gives each breakpoint a number.  In Vim the number shows up in the sign
+column, with a red background.  You can use these gdb commands:
+- info break    list breakpoints
+- delete N      delete breakpoint N
+You can also use the `:Clear` command if the cursor is in the line with the
+breakpoint, or use the "Clear breakpoint" right-click menu entry.
+
+
+Inspecting variables ~
+                                        *termdebug-variables* *:Evaluate*
+- `:Evaluate`        evaluate the expression under the cursor
+- `K`                same (see |termdebug_map_K| to disable)
+- `:Evaluate` {expr} evaluate {expr}
+- `:'<,'>Evaluate`   evaluate the Visually selected text
+
+This is similar to using "print" in the gdb window.
+You can usually shorten `:Evaluate` to `:Ev`.
+The result is displayed in a floating window.
+You can move the cursor to this window by running `:Evaluate` (or `K`) again.
+
+
+Navigating stack frames ~
+                                *termdebug-frames* *:Frame* *:Up* *:Down*
+- `:Frame` [frame]       select frame [frame], which is a frame number,
+                       address, or function name (default: current frame)
+- `:Up` [count]          go up [count] frames (default: 1; the frame that
+                       called the current)
+- `+`                    same (see |termdebug_map_plus| to disable)
+- `:Down` [count]        go down [count] frames (default: 1; the frame called
+                       by the current)
+- `-`                    same (see |termdebug_map_minus| to disable)
+
+
+Other commands ~
+                                                        *termdebug-commands*
+- *:Gdb*      jump to the gdb window
+- *:Program*  jump to the window with the running program
+- *:Source*   jump to the window with the source code, create it if there
+            isn't one
+- *:Asm*      jump to the window with the disassembly, create it if there
+            isn't one
+- *:Var*      jump to the window with the local and argument variables,
+            create it if there isn't one.  This window updates whenever the
+            program is stopped
+
+Events ~
+                                                        *termdebu
