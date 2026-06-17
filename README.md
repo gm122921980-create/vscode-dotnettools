@@ -1,3 +1,677 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  「特性」： {
+    "$schema": {
+      描述：已忽略。可在某些編輯器中進行設定以取得程式碼補全、驗證和檔案。
+      「例子」： [
+        "https://openapi.vercel.sh/vercel.json"
+      ],
+      "type": "string"
+    },
+    「別名」：{
+      "description": "部署狀態為“READY”並且目標環境為“生產”時將分配別名。客戶端需要向其 API 發送“GET”請求以確保分配成功。"
+      「例子」： [
+        "example.vercel.app"
+      ],
+      “oneOf”：[
+        {
+          “private”：true，
+          "type": "string"
+        },
+        {
+          "專案": {
+            "maxLength": 253,
+            "type": "string"
+          },
+          “maxItems”：50，
+          "maxLength": 253,
+          "類型": "陣列"
+        }
+      ]
+    },
+    「建造」： {
+      "additionalProperties": false,
+      “描述”：“包含另一個對象，其中包含要提交給當前過程的資訊的對象”，
+      「已棄用」：是，
+      「特性」： {
+        "env": {
+          "additionalProperties": false,
+          "description": "包含配置環境變數名稱和值的對象，這些變數將提交給建構。可以在值前加上 `@` 來引用金鑰匙。"
+          「例子」： {
+            "A_SECRET": "@a-secret"
+          },
+          「已棄用」：是，
+          「maxProperties」：1000，
+          "minProperties": 0,
+          "patternProperties": {
+            ".+": {
+              "maxLength": 65536,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "構建": {
+      "description": "包含指向有效來源檔案的 src 引用的建構描述清單。"
+      「已棄用」：是，
+      "專案": {
+        "additionalProperties": false,
+        「特性」： {
+          "config": {
+            "description": "選擇性地，一個包含任意元資料的對象，要傳遞給當前器",
+            "type": "object"
+          },
+          "src": {
+            "description": "一個 glob 表達式或路徑名。如果解析出多個文件，則為每個匹配的文件創建一個構建。它可以包含 `*` 和 `**`。"
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          「使用」： {
+            "description": "一個將在建置過程中安裝的 npm 模組。它可以包含一個語意化版本相包含的版本（例如：`@org/proj@1`）",
+            "maxLength": 256,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        「簡單的」： [
+          “使用”
+        ],
+        "type": "object"
+      },
+      “maxItems”：128，
+      "minItems": 0,
+      "類型": "陣列"
+    },
+    "cleanUrls": {
+      "description": "設定為「true」時，所有 HTML 檔案和 Serverless Functions 的副檔名都會被移除。當存取以副檔名末尾的路徑時，系統會傳回 308 回應，將使用者端重新導向到商標副檔名的路徑。 "
+      "type": "boolean"
+    },
+    "env": {
+      "additionalProperties": false,
+      "description": "包含配置環境變數名稱和值的物件。可以引用在值前加上 `@` 來金鑰。"
+      「例子」： {
+        "A_SECRET": "@a-secret"
+      },
+      「已棄用」：是，
+      「maxProperties」：1000，
+      "minProperties": 0,
+      "patternProperties": {
+        ".+": {
+          "maxLength": 65536,
+          "minLength": 0,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "passiveRegions": {
+      "description": "部署的無伺服器函數應部署到被動區域的備份，在 Lambda 函數中斷期間可以將故障轉移到這些區域。"
+      「例子」： [
+        "iad1",
+        "cle1"
+      ],
+      "專案": {
+        "maxLength": 256,
+        "type": "string"
+      },
+      “maxItems”：4，
+      "minItems": 1,
+      "類型": "陣列"
+    },
+    "functionFailoverRegions": {
+      "description": "與passiveRegions相同。CPU區域陣列，用於部署指定的無伺服器功能部署到的區域，以便在Lambda函數發生故障時可以將故障轉移到這些區域。"
+      「例子」： [
+        "iad1",
+        "cle1"
+      ],
+      "專案": {
+        "maxLength": 256,
+        "type": "string"
+      },
+      “maxItems”：4，
+      "minItems": 1,
+      "類型": "陣列"
+    },
+    "functions": {
+      "additionalProperties": false,
+      "description": "一個描述無伺服器函數自訂選項的物件。每個鍵都必須是與您要自訂的無伺服器函數的路徑一致的 glob 模式（例如 `api/*.js` 或 `api/test.js`）。"
+      「例子」： {
+        "src/pages/**": {
+          “maxDuration”：6，
+          「記憶體」：1024
+        }
+      },
+      “maxProperties”：50，
+      "minProperties": 1,
+      "patternProperties": {
+        "^.{1,256}$": {
+          "additionalProperties": false,
+          「特性」： {
+            「排除檔案」：{
+              "description": "用於匹配無伺服器函數中修復檔案的 glob 模式。如果您使用的是社群執行時，則行為可能會有所不同。"
+              "maxLength": 256,
+              "type": "string"
+            },
+            "includeFiles": {
+              "description": "用於匹配應包含在 Serverless 函數中的文件中的 glob 模式。如果您使用的是社區運行時，則行為可能會有所不同。"
+              "maxLength": 256,
+              "type": "string"
+            },
+            "maxDuration": {
+              "description": "您的無伺服器函數在每個請求中應運行多長時間（以秒為單位，循環 1 秒和您的套餐最大限制之間），或使用 "max" 以使用您的套餐允許的最多。"
+              “oneOf”：[
+                {
+                  "type": "number",
+                  「輕輕」：1，
+                  「上」：1800
+                },
+                {
+                  "type": "string",
+                  「枚舉」：[
+                    “最高”
+                  ]
+                }
+              ]
+            },
+            「記憶」：{
+              "description": "一個整數，用於定義應為您的無伺服器函數提供的記憶體大小（目前 128 和 10240 之間）。"
+              「頂部」：10240，
+              「最低」：128，
+              "type": "number"
+            },
+            "運行時": {
+              "description": "運行時的 npm 套件名稱，包括其版本",
+              "maxLength": 256,
+              "type": "string"
+            },
+            「區域」：{
+              “描述”：“此無伺服器函數應部署到的區域資料庫。”
+              "專案": {
+                "maxLength": 256,
+                "type": "string"
+              },
+              “maxItems”：1000，
+              "minItems": 1,
+              "類型": "陣列"
+            },
+            "functionFailoverRegions": {
+              “描述”：“此無伺服器函數在 Lambda 函數中斷期間可以將故障轉移到被動區域資料庫。”
+              "專案": {
+                "maxLength": 256,
+                "type": "string"
+              },
+              “maxItems”：4，
+              "minItems": 0,
+              "類型": "陣列"
+            },
+            "supportsCancellation": {
+              "description": "一個布林值，用來定義函數是否支援取消操作（預設值：false）",
+              "type": "boolean"
+            },
+            "experimentalTriggers": {
+              描述：此無伺服器函數的一系列實驗性波形。目前僅支援隊列波形。
+              "類型": "備份",
+              “maxItems”：10，
+              "專案": {
+                “oneOf”：[
+                  {
+                    "type": "object",
+                    「簡單的」： [
+                      “類型”，
+                      “話題”，
+                      “消費者”
+                    ],
+                    "additionalProperties": false,
+                    「特性」： {
+                      “類型”： {
+                        "描述": "此觸發器處理的事件類型模式",
+                        "type": "string",
+                        區別："queue/v1beta"
+                      },
+                      「話題」： {
+                        "描述": "要消費的佇列主題的名稱",
+                        "type": "string",
+                        "minLength": 1,
+                        「maxLength」：256
+                      },
+                      「消費者」： {
+                        "描述": "此消費的消費者群名稱",
+                        "type": "string",
+                        "minLength": 1,
+                        「maxLength」：256
+                      },
+                      "maxDeliveries": {
+                        "描述": "最大投遞嘗試次數",
+                        "type": "number",
+                        「輕輕」：1，
+                        「頂部」：64
+                      },
+                      "retryAfterSeconds": {
+                        “描述”：“重試失敗執行前的延遲時間（秒）”
+                        "type": "number",
+                        「最低」：5，
+                        「頂部」：86400
+                      },
+                      "initialDelaySeconds": {
+                        “描述”：“首次執行嘗試前的初始延遲時間（秒）”
+                        "type": "number",
+                        「輕輕」：0，
+                        「頂部」：86400
+                      },
+                      "maxConcurrency": {
+                        "描述": "此消費者的最大同時執行次數",
+                        "type": "number",
+                        「輕輕」：1，
+                        「頂部」：100
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    「簡單的」： [
+                      “類型”，
+                      “話題”
+                    ],
+                    "additionalProperties": false,
+                    「特性」： {
+                      “類型”： {
+                        "描述": "此觸發器處理的事件類型模式",
+                        "type": "string",
+                        區別："queue/v2beta"
+                      },
+                      「話題」： {
+                        "描述": "要消費的佇列主題的名稱",
+                        "type": "string",
+                        "minLength": 1,
+                        「maxLength」：256
+                      },
+                      "maxDeliveries": {
+                        "描述": "最大投遞嘗試次數",
+                        "type": "number",
+                        「輕輕」：1，
+                        「頂」：1048576
+                      },
+                      "retryAfterSeconds": {
+                        “描述”：“重試失敗執行前的延遲時間（秒）”
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        「頂部」：86400
+                      },
+                      "initialDelaySeconds": {
+                        “描述”：“首次執行嘗試前的初始延遲時間（秒）”
+                        "type": "number",
+                        「輕輕」：0，
+                        「頂部」：86400
+                      },
+                      "maxConcurrency": {
+                        "描述": "此消費者的最大同時執行次數",
+                        "type": "number",
+                        「輕輕」：1，
+                        「頂」：16384
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "git": {
+      "type": "object",
+      「特性」： {
+        "deploymentEnabled": {
+          "description": "指定提交方案碼時不會觸發自動部署的分支。任何未指定的分支預設為“true”。"
+          「例子」： {
+            「主」：假
+          },
+          “oneOf”：[
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        「獨家性」：{
+          “private”：true，
+          "type": "object",
+          "description": "如果指定，則 Git 倉庫將指定的團隊 ID 使用。未在清單中指定的團隊將無法連結新項目或建立新部署。"
+          「特性」： {
+            「團隊」：{
+              "類型": "備份",
+              描述：允許的團隊 ID 清單。
+              "專案": {
+                "type": "string"
+              },
+              “maxItems”：10，
+              "minItems": 1
+            }
+          }
+        }
+      }
+    },
+    "github": {
+      “private”：true，
+      "type": "object",
+      「特性」： {
+        "autoAlias": {
+          "description": "當設定為`false`時，無論安裝了是否安裝了GitHub應用程序，Vercel for GitHub都不會部署給定的專案。"
+          "type": "boolean"
+        },
+        「自動取消作業」：{
+          "description": "當設定為`false`時，Vercel for GitHub 將始終按順序建立個體，而取消不會最新的提交的構建。"
+          "type": "boolean"
+        },
+        「啟用」：{
+          "description": "如果設定為 false，Vercel for GitHub 將不會在合併時套用別名。"
+          "type": "boolean"
+        },
+        「沉默的」： {
+          「已棄用」：是，
+          「描述」：[已棄用]請修改用控制面板中的專案設定：https://vercel.link/46vERTS 設定為「true」後，Vercel for GitHub 將停止對拉取要求和提交進行評論。
+          "type": "boolean"
+        }
+      }
+    },
+    "headers": {
+      "類型": "備份",
+      “maxItems”：2048，
+      描述：標頭定義清單。
+      "專案": {
+        "type": "object",
+        "additionalProperties": false,
+        「簡單的」： [
+          “來源”，
+          “標題”
+        ],
+        「特性」： {
+          「來源」： {
+            "description": "符合每個命名路徑名（不包括查詢字符串）的模式",
+            "type": "string",
+            “maxLength”：4096
+          },
+          "headers": {
+            描述：一個包含對佇列的鍵值，表示每個回應頭。
+            "類型": "備份",
+            “maxItems”：1024，
+            "專案": {
+              "type": "object",
+              "additionalProperties": false,
+              「簡單的」： [
+                “區域”，
+                “價值”
+              ],
+              「特性」： {
+                「大門」： {
+                  "type": "string",
+                  “maxLength”：4096
+                },
+                「價值」： {
+                  "type": "string",
+                  “maxLength”：32768
+                }
+              }
+            }
+          },
+          「有」： {
+            “描述”：“滿足所需的序列要求”，
+            "類型": "備份",
+            「maxItems」：16，
+            "專案": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  「簡單的」： [
+                    “類型”，
+                    “價值”
+                  ],
+                  「特性」： {
+                    “類型”： {
+                      "描述": "要檢查的請求元素類型",
+                      "type": "string",
+                      「枚舉」：[
+                        “主持人”
+                      ]
+                    },
+                    「價值」： {
+                      "description": "要符合的值。可以是字串（正規表示式）或條件操作物件。"
+                      "anyOf": [
+                        {
+                          描述：用於匹配值的表示正規式。目標位置可以使用命名群體。
+                          "type": "string",
+                          “maxLength”：4096
+                        },
+                        {
+                          "描述": "條件操作物件",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          「特性」： {
+                            "eq": {
+                              描述：相等，
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  “maxLength”：4096
+                                },
+                                {
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            "neq": {
+                              描述：不夠，
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "inc": {
+                              "描述": "在陣列中",
+                              "類型": "備份",
+                              "專案": {
+                                "type": "string",
+                                “maxLength”：4096
+                              }
+                            },
+                            "ninc": {
+                              描述：不在資料庫中，
+                              "類型": "備份",
+                              "專案": {
+                                "type": "string",
+                                “maxLength”：4096
+                              }
+                            },
+                            "pre": {
+                              "描述": "以...開頭",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "suf": {
+                              "描述": "以...結尾",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            「關於」： {
+                              "描述": "正規表示式",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "gt": {
+                              描述：大於，
+                              "type": "number"
+                            },
+                            "gte": {
+                              描述：大於或等於，
+                              "type": "number"
+                            },
+                            "lt": {
+                              "描述": "小於",
+                              "type": "number"
+                            },
+                            "lte": {
+                              “描述”：“小於或等於”，
+                              "type": "number"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  「簡單的」： [
+                    “類型”，
+                    “區域”
+                  ],
+                  「特性」： {
+                    “類型”： {
+                      "描述": "要檢查的請求元素類型",
+                      "type": "string",
+                      「枚舉」：[
+                        “標題”，
+                        “餅乾”，
+                        “詢問”
+                      ]
+                    },
+                    「大門」： {
+                      "description": "特定型別中包含的元素的名稱",
+                      "type": "string",
+                      “maxLength”：4096
+                    },
+                    「價值」： {
+                      "description": "要符合的值。可以是字串（正規表示式）或條件操作物件。"
+                      "anyOf": [
+                        {
+                          描述：用於匹配值的表示正規式。目標位置可以使用命名群體。
+                          "type": "string",
+                          “maxLength”：4096
+                        },
+                        {
+                          "描述": "條件操作物件",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          「特性」： {
+                            "eq": {
+                              描述：相等，
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  “maxLength”：4096
+                                },
+                                {
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            "neq": {
+                              描述：不夠，
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "inc": {
+                              "描述": "在陣列中",
+                              "類型": "備份",
+                              "專案": {
+                                "type": "string",
+                                “maxLength”：4096
+                              }
+                            },
+                            "ninc": {
+                              描述：不在資料庫中，
+                              "類型": "備份",
+                              "專案": {
+                                "type": "string",
+                                “maxLength”：4096
+                              }
+                            },
+                            "pre": {
+                              "描述": "以...開頭",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "suf": {
+                              "描述": "以...結尾",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            「關於」： {
+                              "描述": "正規表示式",
+                              "type": "string",
+                              “maxLength”：4096
+                            },
+                            "gt": {
+                              描述：大於，
+                              "type": "number"
+                            },
+                            "gte": {
+                              描述：大於或等於，
+                              "type": "number"
+                            },
+                            "lt": {
+                              "描述": "小於",
+                              "type": "number"
+                            },
+                            "lte": {
+                              “描述”：“小於或等於”，
+                              "type": "number"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          「遺失的」： {
+            “描述”：“滿足所需的序列要求”，
+            "類型": "備份",
+            「maxItems」：16，
+            "專案": {
+              "afrom fastapi import FastAPI
+ 
+app = FastAPI()
+ 
+@app.get("/")
+def home():
+    return {"message": "Hello from Python on Vercel"}
+ 
+@app.get("/api/items/{item_id}")
+def read_item(item_id: int):
+    return {"item_id": item_id}[project]
+name = "my-python-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.117.1",
+]{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{tests/**,__tests__/**,**/*.test.py,**/test_*.py,fixtures/**,__fixtures__/**,testdata/**,sample-data/**,static/**,assets/**}"
+    }
+  }
+}
+
 # 使用 GitHub Copilot 在 IDE 中获取代码建议
 "files.associations": {
     "*.php4": "php",
@@ -1452,3 +2126,41 @@ Other commands ~
 
 Events ~
                                                         *termdebu
+# /etc/nginx/nginx.conf
+# GUBON OS V5 主配置上下文
+
+user nginx;
+worker_processes auto;
+pid /run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    # --------------------------------------------------------
+    # 核心上下文區域：在這裡引入剛才的 Cloudflare 種子設定
+    # --------------------------------------------------------
+    include /etc/nginx/cloudflare/cloudflare_ips.conf;
+
+    # 基礎傳輸優化
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 4096;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+    # 日誌格式：這時候 $realip_remote_addr 就會拿到真正的訪客 IP
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+    error_log   /var/log/nginx/error.log warn;
+
+    # 你的虛擬主機設定
+    include /etc/nginx/conf.d/*.conf;
+}
